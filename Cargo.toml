@@ -1,0 +1,27 @@
+[package]
+name = "drand-substrate"
+version = "0.1.0"
+authors = ["Bacon <bacon.randomness.beacon@pm.me, Ham <V6w4Qw4F8deNcn@protonmail.com>"]
+edition = "2021"
+
+[dependencies]
+sp-runtime = { version = "6.0.0", default-features = false }
+sp-io = { version = "6.0.0", default-features = false }
+log = { version = "0.4.17", default-features = false }
+sp-std = { version = "4.0.0", default-features = false }
+lite-json = { version = "0.2.0", default-features = false, defaults = ["no_std"] }
+
+[dev-dependencies]
+serde = { version = "^1.0", default-features = false, features = ["derive"] }
+serde_derive = "^1.0"
+serde_json = "^1.0"
+
+
+[features]
+default = ["std"]
+std = [
+	"sp-runtime/std",
+	"sp-io/std",
+    "sp-std/std",
+]
+

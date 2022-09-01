@@ -1,0 +1,11 @@
+{
+    "public_key": "aae1e5903e06a5e70369965fb98377eac085dec8c0fa4bc1c9f50640533890a49bf743971a7aaa929a26e3df8425d2fc",
+    "period": 10,
+    "genesis_time": 1662033750,
+    "hash": "cdb8f62fd14870ccff17c4c932fa8e2857de36d2c06744cf22e7fbb4b95b9e5f",
+    "groupHash": "f37b2aaa57a73cd09219d5829406f4f1f99f12370b79dbce079115b23a3b20b7",
+    "schemeID": "pedersen-bls-chained",
+    "metadata": {
+        "beaconID": "default"
+    }
+}
