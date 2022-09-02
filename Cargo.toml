@@ -1,7 +1,7 @@
 [package]
 name = "drand-substrate"
 version = "0.1.0"
-authors = ["Bacon <bacon.randomness.beacon@pm.me, Ham <V6w4Qw4F8deNcn@protonmail.com>"]
+authors = ["Bacon <bacon.randomness.beacon@pm.me, Ham <none@github.com>"]
 edition = "2021"
 
 [dependencies]
@@ -9,7 +9,9 @@ sp-runtime = { version = "6.0.0", default-features = false }
 sp-io = { version = "6.0.0", default-features = false }
 log = { version = "0.4.17", default-features = false }
 sp-std = { version = "4.0.0", default-features = false }
-lite-json = { version = "0.2.0", default-features = false, defaults = ["no_std"] }
+lite-json = { version = "0.2.0", default-features = false, defaults = [
+	"no_std",
+] }
 getrandom = { version = "0.2", features = ["js"] }
 
 [dev-dependencies]
@@ -20,10 +22,6 @@ serde_json = "^1.0"
 
 [features]
 default = ["std"]
-std = [
-	"sp-runtime/std",
-	"sp-io/std",
-    "sp-std/std",
-]
+std = ["sp-runtime/std", "sp-io/std", "sp-std/std"]
 
 # TODO some libraries have multiple versions defined in Cargo.lock, e.g. getrandom. Should fix this, maybe with cargo patch
