@@ -127,5 +127,5 @@ impl Client {
 
 mod data_structures;
 
-#[cfg(test)]
+#[cfg(all(test, feature = "std"))]
 mod tests;
