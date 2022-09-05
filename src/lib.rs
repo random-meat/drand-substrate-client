@@ -5,30 +5,14 @@ use sp_runtime::offchain::{
     Duration,
 };
 
+use crate::data_structures::Info;
+
 pub struct Config {}
 
 pub struct Client {
     chainHash: Option<String>,
     config: Config,
     endpoint: String,
-}
-
-// TODO: right now the Info struct is defined twice, here and in tests::json. Should unify these.
-/// Type captures the drand-group's hash-info.
-#[derive(Clone, Eq, PartialEq, Debug)]
-pub struct Info {
-    /// Distributed public key of the drand group.
-    pub public_key: Vec<u8>,
-    /// Time in seconds between randomness beacon rounds.
-    pub period: Duration,
-    /// Time in seconds since the Unix Epoch that the group began generating
-    /// randomness
-    pub genesis_time: Duration,
-    /// Chain-hash, which uniquely identifies the drand chain. It is used as
-    /// a root of trust for validation of the first round of randomness.
-    pub hash: Vec<u8>,
-    /// Use as previous_signature to validate the first round of randomness.
-    pub group_hash: Vec<u8>,
 }
 
 impl Default for Client {
@@ -67,8 +51,12 @@ impl Client {
 
         log::info!("Response: {}", body_str);
 
-        let val = lite_json::parse_json(body_str);
-        assert!(val.is_ok(), "Invalid JSON");
+        let val: Info = serde_json::from_str(body_str).map_err(|_| {
+            log::warn!("Failed to deserialize");
+            Error::Unknown
+        })?;
+        // let val = lite_json::parse_json(body_str);
+        // assert!(val.is_ok(), "Invalid JSON");
 
         // some example of using the lite_json library to parse the JSON. should adapt to Info struct
         // let price = match val.ok()? {
@@ -131,6 +119,8 @@ impl Client {
         Ok(body)
     }
 }
+
+mod data_structures;
 
 #[cfg(test)]
 mod tests;
