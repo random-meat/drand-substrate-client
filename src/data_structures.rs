@@ -1,4 +1,5 @@
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+use serde::{Serialize, Deserialize};
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Info {
     pub public_key: String,
     pub period: u64,
@@ -11,7 +12,7 @@ pub struct Info {
     pub metadata: Metadata,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Metadata {
     #[serde(rename = "beaconID")]
     pub beacon_id: String,
