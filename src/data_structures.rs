@@ -13,6 +13,6 @@ pub struct Info {
 
 #[derive(Default, Debug, Clone, PartialEq, serde_derive::Serialize, serde_derive::Deserialize)]
 pub struct Metadata {
-    #[serde(rename = "beaconID")] 
+    #[serde(rename = "beaconID")]
     pub beacon_id: String,
 }

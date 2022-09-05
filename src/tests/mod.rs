@@ -5,10 +5,7 @@ use sp_runtime::offchain::{testing, OffchainWorkerExt};
 
 use crate::Client;
 
-use self::json::Info;
-
-#[cfg(all(test, feature = "std"))]
-mod json;
+use crate::data_structures::Info;
 
 #[test]
 fn get_info() {
