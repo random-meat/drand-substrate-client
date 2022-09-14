@@ -8,7 +8,7 @@ use sp_runtime::offchain::{
 use sp_std::str;
 use sp_std::vec::Vec;
 
-use crate::data_structures::Info;
+pub use crate::data_structures::*;
 
 pub struct Config {}
 
@@ -25,7 +25,9 @@ impl Default for Client {
             config: Config {},
             endpoint: "https://api.drand.sh".as_bytes().to_vec(),
             chainHash: Some(
-                "8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce".as_bytes().to_vec(),
+                "8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce"
+                    .as_bytes()
+                    .to_vec(),
             ),
         }
     }
@@ -42,7 +44,7 @@ impl Default for Client {
 
 impl Client {
     // TODO should return an instance of the Info struct
-    pub fn info(&self) -> Result<(), Error> {
+    pub fn info(&self) -> Result<Info, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/info".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
@@ -55,7 +57,7 @@ impl Client {
 
         log::info!("Response: {}", body_str);
 
-        let val: Info = serde_json::from_str(body_str).map_err(|_| {
+        let info: Info = serde_json::from_str(body_str).map_err(|_| {
             log::warn!("Failed to deserialize");
             Error::Unknown
         })?;
@@ -76,8 +78,30 @@ impl Client {
         //     _ => return None,
         // };
 
-        Ok(())
+        Ok(info)
     }
+
+    pub fn latest(&self) -> Result<Round, Error> {
+        let mut url_str = self.endpoint.clone();
+        url_str.extend("/public/latest".as_bytes().to_vec());
+        let body = self.make_request(url_str).unwrap();
+
+        // Create a str slice from the body.
+        let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+            log::warn!("No UTF8 body");
+            Error::Unknown
+        })?;
+
+        log::info!("Response: {}", body_str);
+
+        let round: Round = serde_json::from_str(body_str).map_err(|_| {
+            log::warn!("Failed to deserialize");
+            Error::Unknown
+        })?;
+
+        Ok(round)
+    }
+
     pub fn make_request(&self, url: Vec<u8>) -> Result<Vec<u8>, Error> {
         // We want to keep the offchain worker execution time reasonable, so we set a hard-coded
         // deadline to 2s to complete the external call.

@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -9,13 +9,12 @@ pub struct Info {
     pub hash: Value,
     #[serde(rename = "groupHash")]
     pub group_hash: Value,
-    #[serde(rename = "schemeID")]
-    pub scheme_id: Value,
-    pub metadata: Metadata,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Metadata {
-    #[serde(rename = "beaconID")]
-    pub beacon_id: Value,
+pub struct Round {
+    pub round: u32,
+    pub randomness: Value,
+    pub previous_signature: Value,
+    pub signature: Value,
 }
