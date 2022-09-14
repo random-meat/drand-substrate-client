@@ -1,5 +1,5 @@
 [package]
-name = "drand-substrate"
+name = "drand-substrate-client"
 version = "0.1.0"
 authors = ["Bacon <bacon.randomness.beacon@pm.me, Ham <none@github.com>"]
 edition = "2021"
