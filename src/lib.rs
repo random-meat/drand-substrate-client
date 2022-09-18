@@ -43,7 +43,6 @@ impl Default for Client {
 }
 
 impl Client {
-    // TODO should return an instance of the Info struct
     pub fn info(&self) -> Result<Info, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/info".as_bytes().to_vec());
@@ -61,22 +60,6 @@ impl Client {
             log::warn!("Failed to deserialize");
             Error::Unknown
         })?;
-        // let val = lite_json::parse_json(body_str);
-        // assert!(val.is_ok(), "Invalid JSON");
-
-        // some example of using the lite_json library to parse the JSON. should adapt to Info struct
-        // let price = match val.ok()? {
-        //     JsonValue::Object(obj) => {
-        //         let (_, v) = obj
-        //             .into_iter()
-        //             .find(|(k, _)| k.iter().copied().eq("USD".chars()))?;
-        //         match v {
-        //             JsonValue::Number(number) => number,
-        //             _ => return None,
-        //         }
-        //     }
-        //     _ => return None,
-        // };
 
         Ok(info)
     }
