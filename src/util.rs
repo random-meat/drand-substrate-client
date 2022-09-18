@@ -1,6 +1,8 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
+use frame_support::pallet_prelude::ConstU32;
+use frame_support::BoundedVec;
 
 pub fn hex_to_bytes(s: &str) -> Option<Vec<u8>> {
     if s.len() % 2 == 0 {
