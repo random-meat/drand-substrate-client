@@ -17,6 +17,13 @@ pub fn hex_to_bytes(s: &str) -> Option<Vec<u8>> {
 }
 
 #[test]
+fn test_hex_to_bytes_uneven() {
+    let hex = "ccbdad137f3bc5e01ebd8c7529abc31813a0566b84e6fd765a661398e9bcbc2";
+    let bytes = hex_to_bytes(hex);
+    assert!(bytes.is_none());
+}
+
+#[test]
 fn test_hex_to_bytes() {
     let hex = "ccbdad137f3bc5e01ebd8c7529abc31813a0566b84e6fd765a661398e9bcbc2f";
     let bytes = hex_to_bytes(hex).unwrap();
