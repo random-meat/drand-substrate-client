@@ -136,3 +136,5 @@ mod data_structures;
 
 #[cfg(all(test, feature = "std"))]
 mod tests;
+
+pub mod util;
