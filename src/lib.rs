@@ -43,7 +43,7 @@ impl Default for Client {
 }
 
 impl Client {
-    pub fn info(&self) -> Result<Info, Error> {
+    pub fn info(&self) -> Result<InfoRaw, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/info".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
@@ -56,7 +56,7 @@ impl Client {
 
         log::info!("Response: {}", body_str);
 
-        let info: Info = serde_json::from_str(body_str).map_err(|_| {
+        let info: InfoRaw = serde_json::from_str(body_str).map_err(|_| {
             log::warn!("Failed to deserialize");
             Error::Unknown
         })?;
@@ -64,7 +64,7 @@ impl Client {
         Ok(info)
     }
 
-    pub fn latest(&self) -> Result<Round, Error> {
+    pub fn latest(&self) -> Result<RoundRaw, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/public/latest".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
@@ -77,7 +77,7 @@ impl Client {
 
         log::info!("Response: {}", body_str);
 
-        let round: Round = serde_json::from_str(body_str).map_err(|_| {
+        let round: RoundRaw = serde_json::from_str(body_str).map_err(|_| {
             log::warn!("Failed to deserialize");
             Error::Unknown
         })?;

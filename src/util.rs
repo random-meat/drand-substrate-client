@@ -1,8 +1,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
-use frame_support::pallet_prelude::ConstU32;
-use frame_support::BoundedVec;
+use sp_runtime::{traits::ConstU32, BoundedVec};
 
 pub fn hex_to_bytes(s: &str) -> Option<Vec<u8>> {
     if s.len() % 2 == 0 {
@@ -16,6 +15,14 @@ pub fn hex_to_bytes(s: &str) -> Option<Vec<u8>> {
     } else {
         None
     }
+}
+
+pub fn str_to_bounded_vec<const S: u32>(
+    val: &serde_json::value::Value,
+) -> BoundedVec<u8, ConstU32<S>> {
+    let bytes = hex_to_bytes(val.as_str().unwrap()).unwrap();
+    let bounded_vec = bytes.try_into().unwrap();
+    bounded_vec
 }
 
 #[test]

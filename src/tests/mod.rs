@@ -3,9 +3,9 @@ use std::{fs::File, io::BufReader};
 use sp_io::TestExternalities;
 use sp_runtime::offchain::{testing, OffchainWorkerExt};
 
-use crate::{Client, Round};
+use crate::{Client, RoundRaw};
 
-use crate::data_structures::Info;
+use crate::data_structures::InfoRaw;
 
 #[test]
 fn get_info() {
@@ -17,7 +17,7 @@ fn get_info() {
 
     let filename = "./src/tests/testdata/chain_info.json";
     let file = File::open(filename).unwrap();
-    let info: Info = serde_json::from_reader(BufReader::new(file)).unwrap();
+    let info: InfoRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let info_string = serde_json::to_string(&info).unwrap();
     let expected_response = info_string.as_bytes();
 
@@ -45,7 +45,7 @@ fn get_latest() {
 
     let filename = "./src/tests/testdata/latest.json";
     let file = File::open(filename).unwrap();
-    let round: Round = serde_json::from_reader(BufReader::new(file)).unwrap();
+    let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let round_string = serde_json::to_string(&round).unwrap();
     let expected_response = round_string.as_bytes();
 
