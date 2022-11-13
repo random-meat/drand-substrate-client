@@ -37,12 +37,23 @@ impl From<InfoRaw> for Info {
 }
 
 /// RoundRaw is used for http interactions and JSON parsing with serde.
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundRaw {
     pub round: u32,
     pub randomness: Value,
     pub previous_signature: Value,
     pub signature: Value,
+}
+
+impl Default for RoundRaw {
+    fn default() -> Self {
+        RoundRaw {
+            round: 0,
+            randomness: "".into(),
+            previous_signature: "".into(),
+            signature: "".into()
+        }
+    }
 }
 
 /// Round will be used in substrate, as it has the Encode/Decode traits derived.
