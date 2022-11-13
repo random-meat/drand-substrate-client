@@ -36,6 +36,36 @@ fn get_info() {
 }
 
 #[test]
+fn get_round() {
+    let (offchain, state) = testing::TestOffchainExt::new();
+    let mut t = TestExternalities::default();
+    t.register_extension(OffchainWorkerExt::new(offchain));
+
+    let client = Client::default();
+
+    // the response for "latest" & "round(int)" has the same format, re-use it
+    let filename = "./src/tests/testdata/latest.json";
+    let file = File::open(filename).unwrap();
+    let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
+    let round_string = serde_json::to_string(&round).unwrap();
+    let expected_response = round_string.as_bytes();
+
+    t.execute_with(|| {
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: "http://localhost/public/2268958".into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response.to_vec()),
+            ..Default::default()
+        });
+        let round = client.round(2268958);
+        assert!(round.is_ok());
+        assert_eq!(round.unwrap().round, 2268958);
+    })
+}
+
+#[test]
 fn get_latest() {
     let (offchain, state) = testing::TestOffchainExt::new();
     let mut t = TestExternalities::default();

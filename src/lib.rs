@@ -64,6 +64,27 @@ impl Client {
         Ok(info)
     }
 
+    pub fn round(&self, round: u64) -> Result<RoundRaw, Error> {
+        let mut url_str = self.endpoint.clone();
+        url_str.extend(format!("/public/{}", round).as_bytes().to_vec());
+        let body = self.make_request(url_str).unwrap();
+
+        // Create a str slice from the body.
+        let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+            log::warn!("No UTF8 body");
+            Error::Unknown
+        })?;
+
+        log::info!("Response: {}", body_str);
+
+        let round: RoundRaw = serde_json::from_str(body_str).map_err(|_| {
+            log::warn!("Failed to deserialize");
+            Error::Unknown
+        })?;
+
+        Ok(round)
+    }
+
     pub fn latest(&self) -> Result<RoundRaw, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/public/latest".as_bytes().to_vec());
