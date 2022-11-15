@@ -3,6 +3,8 @@ name = "drand-substrate-client"
 version = "0.1.0"
 authors = ["Bacon <bacon.randomness.beacon@pm.me, Ham <none@github.com>"]
 edition = "2021"
+description = "substrate client for drand"
+repository = "https://github.com/random-meat/drand-substrate-client"
 license-file = "LICENSE"
 
 [dependencies]
@@ -13,14 +15,9 @@ log = { version = "0.4.17", default-features = false }
 getrandom = { version = "0.2", features = ["js"] }
 serde = { version = "^1.0", default-features = false, features = ["derive"] }
 serde_json = { version = "1.0", default-features = false, features = ["alloc"] }
-codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = [
-	"derive",
-] }
-scale-info = { version = "2.1.1", default-features = false, features = [
-	"derive",
-] }
+codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false, features = ["derive"] }
+scale-info = { version = "2.1.1", default-features = false, features = ["derive"] }
+
 [features]
 default = ["std"]
 std = ["sp-runtime/std", "sp-io/std", "sp-std/std"]
-
-# TODO some libraries have multiple versions defined in Cargo.lock, e.g. getrandom. Should fix this, maybe with cargo patch
