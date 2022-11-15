@@ -3,6 +3,7 @@ name = "drand-substrate-client"
 version = "0.1.0"
 authors = ["Bacon <bacon.randomness.beacon@pm.me, Ham <none@github.com>"]
 edition = "2021"
+license-file = "LICENSE"
 
 [dependencies]
 sp-io = { version = "6.0.0", default-features = false, git = "https://github.com/paritytech/substrate.git", branch = "polkadot-v0.9.28" }
