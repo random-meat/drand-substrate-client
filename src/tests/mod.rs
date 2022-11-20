@@ -1,3 +1,5 @@
+//! All the tests need to use mocks, since the sp_runtime is only available in the substrate runtime. 
+
 use std::{fs::File, io::BufReader};
 
 use sp_io::TestExternalities;
