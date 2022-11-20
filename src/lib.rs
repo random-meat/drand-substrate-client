@@ -44,6 +44,27 @@ impl Default for Client {
 }
 
 impl Client {
+    pub fn chains(&self) -> Result<ChainsRaw, Error> {
+        let mut url_str = self.endpoint.clone();
+        url_str.extend("/chains".as_bytes().to_vec());
+        let body = self.make_request(url_str).unwrap();
+
+        // Create a str slice from the body.
+        let body_str = sp_std::str::from_utf8(&body).map_err(|_| {
+            log::warn!("No UTF8 body");
+            Error::Unknown
+        })?;
+
+        log::info!("Response: {}", body_str);
+
+        let chains: ChainsRaw = serde_json::from_str(body_str).map_err(|_| {
+            log::warn!("Failed to deserialize");
+            Error::Unknown
+        })?;
+
+        Ok(chains)
+    }
+
     pub fn info(&self) -> Result<InfoRaw, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/info".as_bytes().to_vec());
