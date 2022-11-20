@@ -1,3 +1,12 @@
+//! This file contains the data structs returned by the drand API.
+//! There are two types of structs for each endpoint:
+//! 1. The raw struct (e.g. `InfoRaw`), which can be deserialized from the JSON response directly.
+//! While the raw struct can be directly imported into substrate, its fields cannot
+//! be used as storage item because they don't derive `parity_scale_codec`.
+//! 2. The SCALE-encodeable struct (e.g. `Info`), that can be saved to the chain storage.
+//! The SCALE-encodeable struct `T` can be directly constructed from the raw struct, since it
+//! implements `From<RawT>` trait.
+
 use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -7,12 +16,20 @@ use crate::util::str_to_bounded_vec;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChainsRaw {
-    pub public_key: Value,
+    pub hash: Value,
 }
 
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 pub struct Chains {
-    pub public_key: BoundedVec<u8, ConstU32<32>>,
+    pub hash: BoundedVec<u8, ConstU32<32>>,
+}
+
+impl From<ChainsRaw> for Chains {
+    fn from(raw: ChainsRaw) -> Self {
+        Self {
+            hash: str_to_bounded_vec::<32>(&raw.hash),
+        }
+    }
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
