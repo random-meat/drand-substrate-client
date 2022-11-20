@@ -5,6 +5,7 @@ use sp_runtime::offchain::{
     Duration,
 };
 
+use scale_info::prelude::format;
 use sp_std::str;
 use sp_std::vec::Vec;
 
