@@ -3,9 +3,37 @@ use std::{fs::File, io::BufReader};
 use sp_io::TestExternalities;
 use sp_runtime::offchain::{testing, OffchainWorkerExt};
 
-use crate::{Client, RoundRaw};
+use crate::{ChainsRaw, Client, RoundRaw};
 
 use crate::data_structures::InfoRaw;
+
+#[test]
+fn get_chains() {
+    let (offchain, state) = testing::TestOffchainExt::new();
+    let mut t = TestExternalities::default();
+    t.register_extension(OffchainWorkerExt::new(offchain));
+
+    let client = Client::default();
+
+    let filename = "./src/tests/testdata/chains.json";
+    let file = File::open(filename).unwrap();
+    let chains: ChainsRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
+    let chains_string = serde_json::to_string(&chains).unwrap();
+    let expected_response = chains_string.as_bytes();
+
+    t.execute_with(|| {
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: "http://localhost/chains".into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response.to_vec()),
+            ..Default::default()
+        });
+        let chains = client.chains();
+        assert!(chains.is_ok());
+    })
+}
 
 #[test]
 fn get_info() {

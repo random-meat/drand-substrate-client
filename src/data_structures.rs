@@ -6,6 +6,16 @@ use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
 use crate::util::str_to_bounded_vec;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct ChainsRaw {
+    pub public_key: Value,
+}
+
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+pub struct Chains {
+    pub public_key: BoundedVec<u8, ConstU32<32>>,
+}
+
+#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InfoRaw {
     pub public_key: Value,
     pub period: u64,
@@ -51,7 +61,7 @@ impl Default for RoundRaw {
             round: 0,
             randomness: "".into(),
             previous_signature: "".into(),
-            signature: "".into()
+            signature: "".into(),
         }
     }
 }

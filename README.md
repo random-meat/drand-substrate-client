@@ -15,7 +15,7 @@ Rather than refreshing the aforementioned library, we decided to create a new on
 ## Progress
 
 - [x] Support all [APIs](https://drand.love/developer/http-api/#public-endpoints)
-    - [ ] `/chains` (Note: doesn't seem to be supported by drand?!)
+    - [x] `/chains`
     - [x] `/{chain-hash}/info`
     - [x] `/{chain-hash}/public/latest`
     - [x] `/{chain-hash}/public/{round}`
