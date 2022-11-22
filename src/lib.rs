@@ -173,6 +173,10 @@ impl Client {
         let body = response.body().collect::<Vec<u8>>();
         Ok(body)
     }
+
+    // pub fn verify_randomness(&self, round: Round) -> Result<bool, Error> {
+
+    // }
 }
 
 mod data_structures;
