@@ -9,27 +9,46 @@ use drand_verify::derive_randomness;
 
 use crate::{util::hex_to_vec_u8, ChainsRaw, Client, Info, InfoRaw, RoundRaw};
 
+fn get_info_string() -> Vec<u8> {
+    let filename = "./src/tests/testdata/chain_info.json";
+    let file = File::open(filename).unwrap();
+    let info: InfoRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
+    let info_string = serde_json::to_string(&info).unwrap();
+    info_string.as_bytes().to_vec()
+}
+const INFO_URI: &str = "http://localhost/info";
+const CHAINS_URI: &str = "http://localhost/chains";
+const LATEST_URI: &str = "http://localhost/public/latest";
+
 #[test]
 fn get_chains() {
     let (offchain, state) = testing::TestOffchainExt::new();
     let mut t = TestExternalities::default();
     t.register_extension(OffchainWorkerExt::new(offchain));
 
-    let client = Client::default();
-
     let filename = "./src/tests/testdata/chains.json";
     let file = File::open(filename).unwrap();
     let chains: ChainsRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let chains_string = serde_json::to_string(&chains).unwrap();
-    let expected_response = chains_string.as_bytes();
+    let expected_response_chains = chains_string.as_bytes();
+    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
-            uri: "http://localhost/chains".into(),
+            uri: INFO_URI.into(),
             headers: vec![],
             sent: true,
-            response: Some(expected_response.to_vec()),
+            response: Some(expected_response_info),
+            ..Default::default()
+        });
+        let client = Client::default();
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: CHAINS_URI.into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response_chains.to_vec()),
             ..Default::default()
         });
         let chains = client.chains();
@@ -43,21 +62,24 @@ fn get_info() {
     let mut t = TestExternalities::default();
     t.register_extension(OffchainWorkerExt::new(offchain));
 
-    let client = Client::default();
-
-    let filename = "./src/tests/testdata/chain_info.json";
-    let file = File::open(filename).unwrap();
-    let info: InfoRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
-    let info_string = serde_json::to_string(&info).unwrap();
-    let expected_response = info_string.as_bytes();
+    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
-            uri: "http://localhost/info".into(),
+            uri: INFO_URI.into(),
             headers: vec![],
             sent: true,
-            response: Some(expected_response.to_vec()),
+            response: Some(expected_response_info.clone()),
+            ..Default::default()
+        });
+        let client = Client::default();
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: INFO_URI.into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response_info),
             ..Default::default()
         });
         let info = client.info();
@@ -71,16 +93,24 @@ fn get_round() {
     let mut t = TestExternalities::default();
     t.register_extension(OffchainWorkerExt::new(offchain));
 
-    let client = Client::default();
-
     // the response for "latest" & "round(int)" has the same format, re-use it
     let filename = "./src/tests/testdata/latest.json";
     let file = File::open(filename).unwrap();
     let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let round_string = serde_json::to_string(&round).unwrap();
     let expected_response = round_string.as_bytes();
+    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: INFO_URI.into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response_info.clone()),
+            ..Default::default()
+        });
+        let client = Client::default();
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
             uri: "http://localhost/public/2458190".into(),
@@ -101,18 +131,26 @@ fn get_latest() {
     let mut t = TestExternalities::default();
     t.register_extension(OffchainWorkerExt::new(offchain));
 
-    let client = Client::default();
-
     let filename = "./src/tests/testdata/latest.json";
     let file = File::open(filename).unwrap();
     let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let round_string = serde_json::to_string(&round).unwrap();
     let expected_response = round_string.as_bytes();
+    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
-            uri: "http://localhost/public/latest".into(),
+            uri: INFO_URI.into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response_info.clone()),
+            ..Default::default()
+        });
+        let client = Client::default();
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: LATEST_URI.into(),
             headers: vec![],
             sent: true,
             response: Some(expected_response.to_vec()),
@@ -129,8 +167,6 @@ pub fn verify_randomness() {
     let mut t = TestExternalities::default();
     t.register_extension(OffchainWorkerExt::new(offchain));
 
-    let client = Client::default();
-
     // set chain_info for randomness verification
     let chain_info_path = "./src/tests/testdata/chain_info.json";
     let chain_info_file = File::open(chain_info_path).unwrap();
@@ -144,11 +180,21 @@ pub fn verify_randomness() {
         serde_json::from_reader(BufReader::new(latest_round_file)).unwrap();
     let latest_round_serialized = serde_json::to_string(&latest_round_raw).unwrap();
     let expected_response = latest_round_serialized.as_bytes();
+    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
-            uri: "http://localhost/public/latest".into(),
+            uri: INFO_URI.into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response_info.clone()),
+            ..Default::default()
+        });
+        let client = Client::default();
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: LATEST_URI.into(),
             headers: vec![],
             sent: true,
             response: Some(expected_response.to_vec()),
