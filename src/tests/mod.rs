@@ -7,9 +7,7 @@ use sp_runtime::offchain::{testing, OffchainWorkerExt};
 
 use drand_verify::derive_randomness;
 
-use crate::{util::hex_to_vec_u8, ChainsRaw, Client, RoundRaw};
-
-use crate::data_structures::InfoRaw;
+use crate::{util::hex_to_vec_u8, ChainsRaw, Client, Info, InfoRaw, RoundRaw};
 
 #[test]
 fn get_chains() {
@@ -85,15 +83,15 @@ fn get_round() {
     t.execute_with(|| {
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
-            uri: "http://localhost/public/2268958".into(),
+            uri: "http://localhost/public/2458190".into(),
             headers: vec![],
             sent: true,
             response: Some(expected_response.to_vec()),
             ..Default::default()
         });
-        let round = client.round(2268958);
+        let round = client.round(2458190);
         assert!(round.is_ok());
-        assert_eq!(round.unwrap().round, 2268958);
+        assert_eq!(round.unwrap().round, 2458190);
     })
 }
 
@@ -133,11 +131,19 @@ pub fn verify_randomness() {
 
     let client = Client::default();
 
-    let filename = "./src/tests/testdata/latest.json";
-    let file = File::open(filename).unwrap();
-    let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
-    let round_string = serde_json::to_string(&round).unwrap();
-    let expected_response = round_string.as_bytes();
+    // set chain_info for randomness verification
+    let chain_info_path = "./src/tests/testdata/chain_info.json";
+    let chain_info_file = File::open(chain_info_path).unwrap();
+    let chain_info_raw: InfoRaw = serde_json::from_reader(BufReader::new(chain_info_file)).unwrap();
+    let chain_info = Info::from(chain_info_raw);
+
+    // get latest round from file, serialize to mock json body
+    let latest_round_path = "./src/tests/testdata/latest.json";
+    let latest_round_file = File::open(latest_round_path).unwrap();
+    let latest_round_raw: RoundRaw =
+        serde_json::from_reader(BufReader::new(latest_round_file)).unwrap();
+    let latest_round_serialized = serde_json::to_string(&latest_round_raw).unwrap();
+    let expected_response = latest_round_serialized.as_bytes();
 
     t.execute_with(|| {
         state.write().expect_request(testing::PendingRequest {
@@ -148,14 +154,14 @@ pub fn verify_randomness() {
             response: Some(expected_response.to_vec()),
             ..Default::default()
         });
-        let round = client.latest()?;
-        let randomness = client.verify_randomness(&round)?;
+        let round = client.latest().unwrap();
+        let randomness = client.verify_randomness(&round, &chain_info.public_key);
         assert!(randomness.is_ok());
     })
 }
 
 #[test]
-pub fn test_derive_randomness() {
+pub fn test_drand_verify_derive_randomness() {
     let signature_vec =
         hex_to_vec_u8("b77042e3ccfeea287f77c956c4321afc0ec1ac4d7c820c1f2106c260587ca67e690700576fc0f465c833dedd503c57470f0b8c5c41dee9ba81dc3e8a16cb75565169676ce9ac4f55bc034a408301e534da0e2d1749add989d19c2bf6bdbff1c4").unwrap();
     let expected_randomness =

@@ -11,9 +11,8 @@ use codec::{Decode, Encode};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
-// use drand_verify::q
 
-use crate::util::json_value_to_bounded_vec;
+use crate::util::hex_json_value_to_bounded_vec_u8;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChainsRaw {
@@ -28,11 +27,12 @@ pub struct Chains {
 impl From<ChainsRaw> for Chains {
     fn from(raw: ChainsRaw) -> Self {
         Self {
-            hash: json_value_to_bounded_vec::<32>(&raw.hash),
+            hash: hex_json_value_to_bounded_vec_u8::<32>(&raw.hash),
         }
     }
 }
 
+/// TODO update these to support the latest drand API (eg schemeID)
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct InfoRaw {
     pub public_key: Value,
@@ -55,11 +55,11 @@ pub struct Info {
 impl From<InfoRaw> for Info {
     fn from(info: InfoRaw) -> Self {
         Info {
-            public_key: json_value_to_bounded_vec::<48>(&info.public_key),
+            public_key: hex_json_value_to_bounded_vec_u8::<48>(&info.public_key),
             period: info.period,
             genesis_time: info.genesis_time,
-            hash: json_value_to_bounded_vec::<32>(&info.hash),
-            group_hash: json_value_to_bounded_vec::<32>(&info.group_hash),
+            hash: hex_json_value_to_bounded_vec_u8::<32>(&info.hash),
+            group_hash: hex_json_value_to_bounded_vec_u8::<32>(&info.group_hash),
         }
     }
 }
@@ -67,7 +67,7 @@ impl From<InfoRaw> for Info {
 /// RoundRaw is used for http interactions and JSON parsing with serde.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RoundRaw {
-    pub round: u32,
+    pub round: u64,
     pub randomness: Value,
     pub previous_signature: Value,
     pub signature: Value,
@@ -87,13 +87,14 @@ impl Default for RoundRaw {
 /// Round will be used in substrate, as it has the Encode/Decode traits derived.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 pub struct Round {
-    pub round: u32,
+    pub round: u64,
     // TODO - use array instead of BoundedVec
     pub randomness: BoundedVec<u8, ConstU32<32>>,
     pub previous_signature: BoundedVec<u8, ConstU32<96>>,
     pub signature: BoundedVec<u8, ConstU32<96>>,
 }
 
+// TODO Can we do TryFrom instead?
 impl From<RoundRaw> for Round {
     fn from(round: RoundRaw) -> Self {
         let RoundRaw {
@@ -105,9 +106,34 @@ impl From<RoundRaw> for Round {
 
         Round {
             round,
-            randomness: json_value_to_bounded_vec::<32>(&randomness),
-            previous_signature: json_value_to_bounded_vec::<96>(&previous_signature),
-            signature: json_value_to_bounded_vec::<96>(&signature),
+            randomness: hex_json_value_to_bounded_vec_u8::<32>(&randomness),
+            previous_signature: hex_json_value_to_bounded_vec_u8::<96>(&previous_signature),
+            signature: hex_json_value_to_bounded_vec_u8::<96>(&signature),
         }
     }
 }
+
+// // TODO Can we do TryFrom instead?
+// impl From<InfoRaw> for Info {
+//     fn from(info: InfoRaw) -> Self {
+//         let Info {
+//             public_key,
+//             period,
+//             genesis_time,
+//             hash,
+//             group_hash,
+//         } = info;
+
+//         Info {
+//             public_key: hex_json_value_to_bounded_vec_u8::<48>(&public_key),
+//             period,
+//             genesis_time,
+//             hash: hex_json_value_to_bounded_vec_u8::<32>(&hash),
+//             group_hash: hex_json_value_to_bounded_vec_u8::<32>(&group_hash),
+//         }
+//         // round,
+//         // randomness: hex_json_value_to_bounded_vec_u8::<32>(&randomness),
+//         // previous_signature: hex_json_value_to_bounded_vec_u8::<96>(&previous_signature),
+//         // signature: hex_json_value_to_bounded_vec_u8::<96>(&signature),
+//     }
+// }

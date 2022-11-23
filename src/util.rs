@@ -19,7 +19,7 @@ pub fn hex_to_vec_u8(s: &str) -> Option<Vec<u8>> {
 }
 
 // TODO `impl TryFrom<Value> for BoundedVec...` instead
-pub fn json_value_to_bounded_vec<const S: u32>(
+pub fn hex_json_value_to_bounded_vec_u8<const S: u32>(
     val: &serde_json::value::Value,
 ) -> BoundedVec<u8, ConstU32<S>> {
     // TODO remove unwraps (runtime should not panic)

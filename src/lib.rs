@@ -5,31 +5,80 @@ use sp_runtime::offchain::{
     Duration,
 };
 
+use drand_verify::g1_from_variable;
+
 use scale_info::prelude::format;
+use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
 use sp_std::str;
 use sp_std::vec::Vec;
 
 pub use crate::data_structures::*;
 
+/// drand client errors
+#[derive(RuntimeDebug)]
+pub enum ClientError {
+    /// TODO
+    Http,
+    /// TODO
+    Json,
+    Unknown,
+    /// The round was was unable to be verified
+    RandomnessVerificationError,
+    /// `chain_info` is not configured. Set it with `set_chain_info(Info)`
+    ChainNotConfigured,
+    /// TODO catch all error
+    Misc,
+    /// Signature verification failed
+    InvalidSignature,
+}
+
+/// drand client configuration
 pub struct Config {}
 
+/// Client is a wrapper around the offchain http client.
+/// TODO This should include the chain's `Info` struct as a field, instead of just parts of it.
 pub struct Client {
-    chainHash: Option<Vec<u8>>,
+    /// depreciate chain_hash, use chain_info.hash instead
+    chain_hash: Option<Vec<u8>>,
     config: Config,
     endpoint: Vec<u8>,
+    chain_info: Option<Info>,
+    /// Store latest round to prevent old randomness from being used.
+    // TODO should we calculate what this should be based on genesis_time and current time?
+    latest_round: u64,
 }
+
+// {"public_key":"868f005eb8e6e4ca0a47c8a77ceaa5309a47978a7c71bc5cce96366b5d7a569937c529eeda66c7293784a9402801af31",
+// "period":30,
+// "genesis_time":1595431050,
+// "hash":"8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce",
+// "groupHash":"176f93498eac9ca337150b46d21dd58673ea4e3581185f869672e59fa4cb390a",
+// "schemeID":"pedersen-bls-chained",
+// "metadata":{"beaconID":"default"}}
 
 impl Default for Client {
     #[cfg(not(test))]
     fn default() -> Self {
+        use util::hex_to_vec_u8;
+
+        let chain_hash =
+            hex_to_vec_u8("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")
+                .unwrap();
+
         Client {
             config: Config {},
-            endpoint: "https://api.drand.sh".as_bytes().to_vec(),
-            chainHash: Some(
-                "8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce"
-                    .as_bytes()
-                    .to_vec(),
+            endpoint: "https://drand.cloudflare.com".as_bytes().to_vec(),
+            chain_hash: Some(chain_hash.clone()),
+            chain_info: Some(
+                Info {
+                    public_key: hex_to_vec_u8("868f005eb8e6e4ca0a47c8a77ceaa5309a47978a7c71bc5cce96366b5d7a569937c529eeda66c7293784a9402801af31").unwrap().try_into().unwrap(),
+                    period: 30,
+                    genesis_time: 1595431050,
+                    hash: chain_hash.try_into().unwrap(),
+                    group_hash: hex_to_vec_u8("176f93498eac9ca337150b46d21dd58673ea4e3581185f869672e59fa4cb390a").unwrap().try_into().unwrap(),
+                }
             ),
+            latest_round: 2457230, // as of 2022-11-22
         }
     }
 
@@ -38,7 +87,9 @@ impl Default for Client {
         Client {
             config: Config {},
             endpoint: "http://localhost".as_bytes().to_vec(),
-            chainHash: None,
+            chain_hash: None,
+            chain_info: None,
+            latest_round: 0,
         }
     }
 }
@@ -86,6 +137,25 @@ impl Client {
         Ok(info)
     }
 
+    /// Associates the client to a specific chain. Required to verify randomness.
+    pub fn set_chain_info(&mut self, chain_info: Info) -> Result<(), ClientError> {
+        // TODO finish parsing other fields
+        // Make sure public key is a valid key before we store so we can use unchecked
+        let _public_key =
+            g1_from_variable(chain_info.public_key.as_slice()).map_err(|_| ClientError::Misc)?;
+
+        self.chain_info = Some(chain_info);
+        Ok(())
+    }
+
+    pub fn chain_info(&self) -> Result<Info, ClientError> {
+        match &self.chain_info {
+            Some(info) => Ok(info.clone()),
+            None => Err(ClientError::ChainNotConfigured),
+        }
+    }
+
+    // TODO Change all to return parsed, not Raw
     pub fn round(&self, round: u64) -> Result<RoundRaw, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend(format!("/public/{}", round).as_bytes().to_vec());
@@ -107,7 +177,7 @@ impl Client {
         Ok(round)
     }
 
-    pub fn latest(&self) -> Result<RoundRaw, Error> {
+    pub fn latest(&self) -> Result<Round, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/public/latest".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
@@ -120,12 +190,12 @@ impl Client {
 
         log::info!("Response: {}", body_str);
 
-        let round: RoundRaw = serde_json::from_str(body_str).map_err(|_| {
+        let round_raw: RoundRaw = serde_json::from_str(body_str).map_err(|_| {
             log::warn!("Failed to deserialize");
             Error::Unknown
         })?;
 
-        Ok(round)
+        Ok(Round::from(round_raw))
     }
 
     pub fn make_request(&self, url: Vec<u8>) -> Result<Vec<u8>, Error> {
@@ -174,9 +244,31 @@ impl Client {
         Ok(body)
     }
 
-    // pub fn verify_randomness(&self, round: Round) -> Result<bool, Error> {
+    pub fn verify_randomness(
+        &self,
+        round: &Round,
+        pub_key_vec: &BoundedVec<u8, ConstU32<48>>,
+    ) -> Result<BoundedVec<u8, ConstU32<32>>, ClientError> {
+        // verify signature
+        let Round {
+            round,
+            randomness,
+            previous_signature,
+            signature,
+        } = round;
 
-    // }
+        let pk_point = g1_from_variable(pub_key_vec.as_slice()).map_err(|_| ClientError::Misc)?;
+        match drand_verify::verify(&pk_point, round.clone(), previous_signature, signature) {
+            Ok(b) => {
+                if !b {
+                    return Err(ClientError::InvalidSignature);
+                } else {
+                    Ok(randomness.clone())
+                }
+            }
+            Err(_) => Err(ClientError::RandomnessVerificationError),
+        }
+    }
 }
 
 mod data_structures;
