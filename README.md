@@ -21,4 +21,4 @@ Rather than refreshing the aforementioned library, we decided to create a new on
     - [x] `/{chain-hash}/public/{round}`
 - [ ] Support multiple endpoints (e.g. https://api3.drand.sh)
 - [x] Testing with an offchain worker mock
-- [ ] Verification of randomness
+- [x] Verification of randomness
