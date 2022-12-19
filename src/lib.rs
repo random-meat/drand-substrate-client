@@ -15,7 +15,9 @@ use sp_runtime::offchain::{
 
 use drand_verify::g1_from_variable;
 
+use codec::{Decode, Encode};
 use scale_info::prelude::format;
+use serde::{Deserialize, Serialize};
 use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
 use sp_std::str;
 use sp_std::vec::Vec;
@@ -39,65 +41,49 @@ pub enum ClientError {
 }
 
 /// Client is a wrapper around the offchain http client.
+/// Configuration used to specify the root of trust (chain info) and some endpoints that should be running drand nodes.
+/// This will be stored on-chain.
+#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 pub struct Client {
-    /// depreciate chain_hash, use chain_info.hash instead
-    chain_hash: Option<Vec<u8>>,
-    endpoint: Vec<u8>,
-    chain_info: Option<Info>,
-    /// Store latest round to prevent old randomness from being used.
-    // TODO should we calculate what this should be based on genesis_time and current time?
-    // TODO optional field, only set if we want to prevent old randomness from being reused
-    latest_round: u64,
+    pub endpoint: BoundedVec<u8, ConstU32<100>>,
+    pub chain_info: Option<Info>,
 }
 
 impl Default for Client {
+    /// League of Entropy base urls and chain info (from https://drand.cloudflare.com/info)
     #[cfg(not(test))]
     fn default() -> Self {
-        use util::hex_to_vec_u8;
-
-        let chain_hash =
-            hex_to_vec_u8("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce")
-                .unwrap();
-
-        let mut c = Client {
-            endpoint: "https://drand.cloudflare.com".as_bytes().to_vec(),
-            chain_hash: Some(chain_hash.clone()),
-            chain_info: None,
-            latest_round: 0,
-        };
-
-        let info = c.info().unwrap();
-        c.chain_info = Some(info);
-        c
+        Client {
+            endpoint: "https://drand.cloudflare.com"
+                .as_bytes()
+                .to_owned()
+                .try_into()
+                .unwrap(),
+            chain_info: Some(Info::default()),
+        }
     }
 
     #[cfg(test)]
     fn default() -> Self {
-        let mut c = Client {
-            endpoint: "http://localhost".as_bytes().to_vec(),
-            chain_hash: None,
-            chain_info: None,
-            latest_round: 0,
-        };
-
-        let info = c.info().unwrap();
-        c.chain_info = Some(info);
-        c
+        Client {
+            endpoint: "http://localhost".as_bytes().to_owned().try_into().unwrap(),
+            chain_info: Some(Info::default()),
+        }
     }
 }
 
 impl Client {
-    pub fn new(endpoint: &str) -> Self {
+    // Creates a new drand client with the provided URL and chain_info.
+    pub fn new(url: &str, chain_info: Info) -> Self {
         Client {
-            endpoint: endpoint.as_bytes().to_vec(),
-            chain_hash: None,
-            chain_info: None,
-            latest_round: 0,
+            endpoint: url.as_bytes().to_owned().to_vec().try_into().unwrap(),
+            chain_info: Some(chain_info),
         }
     }
 
+    /// HTTP GET on the chain's `/chains` endpoint.
     pub fn chains(&self) -> Result<Chains, Error> {
-        let mut url_str = self.endpoint.clone();
+        let mut url_str = self.endpoint.clone().to_vec();
         url_str.extend("/chains".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
 
@@ -117,8 +103,9 @@ impl Client {
         Ok(Chains::from(chains_raw))
     }
 
+    /// HTTP GET on the chain's `/info` endpoint.
     pub fn info(&self) -> Result<Info, Error> {
-        let mut url_str = self.endpoint.clone();
+        let mut url_str = self.endpoint.clone().to_vec();
         url_str.extend("/info".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
 
@@ -139,16 +126,11 @@ impl Client {
     }
 
     /// Associates the client to a specific chain. Required to verify randomness.
-    pub fn set_chain_info(&mut self, chain_info: Info) -> Result<(), ClientError> {
-        // TODO finish parsing other fields
-        // Make sure public key is a valid key before we store so we can use unchecked
-        let _public_key =
-            g1_from_variable(chain_info.public_key.as_slice()).map_err(|_| ClientError::Misc)?;
-
-        self.chain_info = Some(chain_info);
-        Ok(())
+    pub fn set_chain_info(&mut self, info: Info) -> () {
+        self.chain_info = Some(info);
     }
 
+    /// Getter for self.chain_info
     pub fn chain_info(&self) -> Result<Info, ClientError> {
         match &self.chain_info {
             Some(info) => Ok(info.clone()),
@@ -156,9 +138,10 @@ impl Client {
         }
     }
 
+    /// Queries and verifies a round of randomness.
     pub fn round(&self, round: u64) -> Result<Round, Error> {
-        let mut url_str = self.endpoint.clone();
-        url_str.extend(format!("/public/{}", round).as_bytes().to_vec());
+        let mut url_str = self.endpoint.clone().to_vec();
+        url_str.extend(format!("/public/{round}").as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
 
         // Create a str slice from the body.
@@ -169,17 +152,23 @@ impl Client {
 
         log::info!("Response: {}", body_str);
 
-        let round_raw: RoundRaw = serde_json::from_str(body_str).map_err(|_| {
-            log::warn!("Failed to deserialize");
-            Error::Unknown
-        })?;
+        let round = Round::from(RoundRaw::from(serde_json::from_str(body_str).map_err(
+            |_| {
+                log::warn!("Failed to deserialize");
+                Error::Unknown
+            },
+        )?));
 
-        Ok(Round::from(round_raw))
+        // TODO fix unwrap
+        Client::verify_randomness(&round, &self.chain_info.clone().unwrap().public_key)
+            .map_err(|_| Error::Unknown)?;
+
+        Ok(round)
     }
 
     /// This fetches the latest round from the drand server.
     pub fn latest(&self) -> Result<Round, Error> {
-        let mut url_str = self.endpoint.clone();
+        let mut url_str = self.endpoint.clone().to_vec();
         url_str.extend("/public/latest".as_bytes().to_vec());
         let body = self.make_request(url_str).unwrap();
 
@@ -245,8 +234,8 @@ impl Client {
         Ok(body)
     }
 
+    /// Static function to verify a round against a public key
     pub fn verify_randomness(
-        &self,
         round: &Round,
         pub_key_vec: &BoundedVec<u8, ConstU32<48>>,
     ) -> Result<BoundedVec<u8, ConstU32<32>>, ClientError> {
@@ -259,10 +248,10 @@ impl Client {
         } = round;
 
         let pk_point = g1_from_variable(pub_key_vec.as_slice()).map_err(|_| ClientError::Misc)?;
-        match drand_verify::verify(&pk_point, round.clone(), previous_signature, signature) {
+        match drand_verify::verify(&pk_point, *round, previous_signature, signature) {
             Ok(b) => {
                 if !b {
-                    return Err(ClientError::InvalidSignature);
+                    Err(ClientError::InvalidSignature)
                 } else {
                     Ok(randomness.clone())
                 }

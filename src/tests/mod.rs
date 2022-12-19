@@ -31,17 +31,8 @@ fn get_chains() {
     let chains: ChainsRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let chains_string = serde_json::to_string(&chains).unwrap();
     let expected_response_chains = chains_string.as_bytes();
-    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
-        state.write().expect_request(testing::PendingRequest {
-            method: "GET".into(),
-            uri: INFO_URI.into(),
-            headers: vec![],
-            sent: true,
-            response: Some(expected_response_info),
-            ..Default::default()
-        });
         let client = Client::default();
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
@@ -65,14 +56,6 @@ fn get_info() {
     let expected_response_info = get_info_string();
 
     t.execute_with(|| {
-        state.write().expect_request(testing::PendingRequest {
-            method: "GET".into(),
-            uri: INFO_URI.into(),
-            headers: vec![],
-            sent: true,
-            response: Some(expected_response_info.clone()),
-            ..Default::default()
-        });
         let client = Client::default();
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
@@ -99,17 +82,8 @@ fn get_round() {
     let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let round_string = serde_json::to_string(&round).unwrap();
     let expected_response = round_string.as_bytes();
-    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
-        state.write().expect_request(testing::PendingRequest {
-            method: "GET".into(),
-            uri: INFO_URI.into(),
-            headers: vec![],
-            sent: true,
-            response: Some(expected_response_info.clone()),
-            ..Default::default()
-        });
         let client = Client::default();
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
@@ -136,17 +110,8 @@ fn get_latest() {
     let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
     let round_string = serde_json::to_string(&round).unwrap();
     let expected_response = round_string.as_bytes();
-    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
-        state.write().expect_request(testing::PendingRequest {
-            method: "GET".into(),
-            uri: INFO_URI.into(),
-            headers: vec![],
-            sent: true,
-            response: Some(expected_response_info.clone()),
-            ..Default::default()
-        });
         let client = Client::default();
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
@@ -180,17 +145,8 @@ pub fn verify_randomness() {
         serde_json::from_reader(BufReader::new(latest_round_file)).unwrap();
     let latest_round_serialized = serde_json::to_string(&latest_round_raw).unwrap();
     let expected_response = latest_round_serialized.as_bytes();
-    let expected_response_info = get_info_string();
 
     t.execute_with(|| {
-        state.write().expect_request(testing::PendingRequest {
-            method: "GET".into(),
-            uri: INFO_URI.into(),
-            headers: vec![],
-            sent: true,
-            response: Some(expected_response_info.clone()),
-            ..Default::default()
-        });
         let client = Client::default();
         state.write().expect_request(testing::PendingRequest {
             method: "GET".into(),
@@ -201,7 +157,7 @@ pub fn verify_randomness() {
             ..Default::default()
         });
         let round = client.latest().unwrap();
-        let randomness = client.verify_randomness(&round, &chain_info.public_key);
+        let randomness = Client::verify_randomness(&round, &chain_info.public_key);
         assert!(randomness.is_ok());
     })
 }
@@ -213,7 +169,7 @@ pub fn test_drand_verify_derive_randomness() {
     let expected_randomness =
         hex_to_vec_u8("ccbdad137f3bc5e01ebd8c7529abc31813a0566b84e6fd765a661398e9bcbc2f").unwrap();
 
-    let derived_randomness = derive_randomness(&signature_vec.as_slice());
+    let derived_randomness = derive_randomness(signature_vec.as_slice());
 
     assert_eq!(
         derived_randomness.as_slice(),
