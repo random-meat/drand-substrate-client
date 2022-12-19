@@ -1,5 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
+#[cfg(all(test, feature = "std"))]
+mod tests;
+
+mod data_structures;
+mod util;
+
+pub use crate::data_structures::*;
+
 use sp_runtime::offchain::{
     http::{Error, Request},
     Duration,
@@ -11,8 +19,6 @@ use scale_info::prelude::format;
 use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
 use sp_std::str;
 use sp_std::vec::Vec;
-
-pub use crate::data_structures::*;
 
 /// drand client errors
 #[derive(RuntimeDebug)]
@@ -33,7 +39,6 @@ pub enum ClientError {
 }
 
 /// Client is a wrapper around the offchain http client.
-/// TODO This should include the chain's `Info` struct as a field, instead of just parts of it.
 pub struct Client {
     /// depreciate chain_hash, use chain_info.hash instead
     chain_hash: Option<Vec<u8>>,
@@ -41,16 +46,9 @@ pub struct Client {
     chain_info: Option<Info>,
     /// Store latest round to prevent old randomness from being used.
     // TODO should we calculate what this should be based on genesis_time and current time?
+    // TODO optional field, only set if we want to prevent old randomness from being reused
     latest_round: u64,
 }
-
-// {"public_key":"868f005eb8e6e4ca0a47c8a77ceaa5309a47978a7c71bc5cce96366b5d7a569937c529eeda66c7293784a9402801af31",
-// "period":30,
-// "genesis_time":1595431050,
-// "hash":"8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce",
-// "groupHash":"176f93498eac9ca337150b46d21dd58673ea4e3581185f869672e59fa4cb390a",
-// "schemeID":"pedersen-bls-chained",
-// "metadata":{"beaconID":"default"}}
 
 impl Default for Client {
     #[cfg(not(test))]
@@ -89,6 +87,15 @@ impl Default for Client {
 }
 
 impl Client {
+    pub fn new(endpoint: &str) -> Self {
+        Client {
+            endpoint: endpoint.as_bytes().to_vec(),
+            chain_hash: None,
+            chain_info: None,
+            latest_round: 0,
+        }
+    }
+
     pub fn chains(&self) -> Result<Chains, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/chains".as_bytes().to_vec());
@@ -170,6 +177,7 @@ impl Client {
         Ok(Round::from(round_raw))
     }
 
+    /// This fetches the latest round from the drand server.
     pub fn latest(&self) -> Result<Round, Error> {
         let mut url_str = self.endpoint.clone();
         url_str.extend("/public/latest".as_bytes().to_vec());
@@ -263,10 +271,3 @@ impl Client {
         }
     }
 }
-
-mod data_structures;
-
-#[cfg(all(test, feature = "std"))]
-mod tests;
-
-pub mod util;

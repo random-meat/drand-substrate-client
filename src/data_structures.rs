@@ -19,8 +19,10 @@ pub struct ChainsRaw {
     pub hash: Value,
 }
 
+/// This is should be returned from the `/chains` endpoint of a node.
 #[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
 pub struct Chains {
+    /// TODO use an array since it will always be a SHA2 hash (or at least a 32byte hash)
     pub hash: BoundedVec<u8, ConstU32<32>>,
 }
 
@@ -112,28 +114,3 @@ impl From<RoundRaw> for Round {
         }
     }
 }
-
-// // TODO Can we do TryFrom instead?
-// impl From<InfoRaw> for Info {
-//     fn from(info: InfoRaw) -> Self {
-//         let Info {
-//             public_key,
-//             period,
-//             genesis_time,
-//             hash,
-//             group_hash,
-//         } = info;
-
-//         Info {
-//             public_key: hex_json_value_to_bounded_vec_u8::<48>(&public_key),
-//             period,
-//             genesis_time,
-//             hash: hex_json_value_to_bounded_vec_u8::<32>(&hash),
-//             group_hash: hex_json_value_to_bounded_vec_u8::<32>(&group_hash),
-//         }
-//         // round,
-//         // randomness: hex_json_value_to_bounded_vec_u8::<32>(&randomness),
-//         // previous_signature: hex_json_value_to_bounded_vec_u8::<96>(&previous_signature),
-//         // signature: hex_json_value_to_bounded_vec_u8::<96>(&signature),
-//     }
-// }
