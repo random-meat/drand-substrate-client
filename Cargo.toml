@@ -26,4 +26,10 @@ drand-verify = "0.3.0"
 
 [features]
 default = ["std"]
-std = ["sp-runtime/std", "sp-io/std", "sp-std/std", "frame-support/std"]
+std = [
+    "sp-runtime/std",
+    "sp-io/std",
+    "sp-std/std",
+    "frame-support/std",
+    "codec/std",
+]
