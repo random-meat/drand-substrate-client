@@ -7,7 +7,7 @@
 //! The SCALE-encodeable struct `T` can be directly constructed from the raw struct, since it
 //! implements `TryFrom<RawT>` trait.
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
@@ -20,7 +20,9 @@ pub struct ChainsRaw {
 }
 
 /// This is should be returned from the `/chains` endpoint of a node.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo, Serialize, Deserialize,
+)]
 pub struct Chains {
     /// TODO use an array since it will always be a SHA2 hash (or at least a 32byte hash)
     pub hash: BoundedVec<u8, ConstU32<32>>,
@@ -45,7 +47,18 @@ pub struct InfoRaw {
     pub group_hash: Value,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    Clone,
+    PartialEq,
+    Eq,
+    RuntimeDebug,
+    scale_info::TypeInfo,
+    MaxEncodedLen,
+    Serialize,
+    Deserialize,
+)]
 pub struct Info {
     pub public_key: BoundedVec<u8, ConstU32<48>>,
     pub period: u64,
@@ -99,7 +112,9 @@ impl Default for RoundRaw {
 }
 
 /// Round will be used in substrate, as it has the Encode/Decode traits derived.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
+)]
 pub struct Round {
     pub round: u64,
     // TODO - use array instead of BoundedVec

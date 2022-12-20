@@ -16,8 +16,8 @@ use sp_runtime::offchain::{
 use drand_verify::g1_from_variable;
 
 use codec::{Decode, Encode};
+use frame_support::{dispatch::MaxEncodedLen, Deserialize, Serialize};
 use scale_info::prelude::format;
-use serde::{Deserialize, Serialize};
 use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
 use sp_std::str;
 use sp_std::vec::Vec;
@@ -43,7 +43,18 @@ pub enum ClientError {
 /// Client is a wrapper around the offchain http client.
 /// Configuration used to specify the root of trust (chain info) and some endpoints that should be running drand nodes.
 /// This will be stored on-chain.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    Clone,
+    PartialEq,
+    Eq,
+    RuntimeDebug,
+    scale_info::TypeInfo,
+    MaxEncodedLen,
+    Serialize,
+    Deserialize,
+)]
 pub struct Client {
     pub endpoint: BoundedVec<u8, ConstU32<100>>,
     pub chain_info: Option<Info>,
