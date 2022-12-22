@@ -24,8 +24,8 @@ pub fn hex_json_value_to_bounded_vec_u8<const S: u32>(
 ) -> BoundedVec<u8, ConstU32<S>> {
     // TODO remove unwraps (runtime should not panic)
     let bytes = hex_to_vec_u8(val.as_str().unwrap()).unwrap();
-    let bounded_vec = bytes.try_into().unwrap();
-    bounded_vec
+
+    bytes.try_into().unwrap()
 }
 
 #[test]

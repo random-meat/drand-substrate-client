@@ -7,12 +7,12 @@
 //! The SCALE-encodeable struct `T` can be directly constructed from the raw struct, since it
 //! implements `TryFrom<RawT>` trait.
 
-use codec::{Decode, Encode};
+use codec::{Decode, Encode, MaxEncodedLen};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sp_runtime::{traits::ConstU32, BoundedVec, RuntimeDebug};
 
-use crate::util::hex_json_value_to_bounded_vec_u8;
+use crate::util::{hex_json_value_to_bounded_vec_u8, hex_to_vec_u8};
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ChainsRaw {
@@ -20,7 +20,9 @@ pub struct ChainsRaw {
 }
 
 /// This is should be returned from the `/chains` endpoint of a node.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo, Serialize, Deserialize,
+)]
 pub struct Chains {
     /// TODO use an array since it will always be a SHA2 hash (or at least a 32byte hash)
     pub hash: BoundedVec<u8, ConstU32<32>>,
@@ -45,13 +47,36 @@ pub struct InfoRaw {
     pub group_hash: Value,
 }
 
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode,
+    Decode,
+    Clone,
+    PartialEq,
+    Eq,
+    RuntimeDebug,
+    scale_info::TypeInfo,
+    MaxEncodedLen,
+    Serialize,
+    Deserialize,
+)]
 pub struct Info {
     pub public_key: BoundedVec<u8, ConstU32<48>>,
     pub period: u64,
     pub genesis_time: u64,
     pub hash: BoundedVec<u8, ConstU32<32>>,
     pub group_hash: BoundedVec<u8, ConstU32<32>>,
+}
+
+impl Default for Info {
+    fn default() -> Info {
+        Info {
+                public_key: hex_to_vec_u8("868f005eb8e6e4ca0a47c8a77ceaa5309a47978a7c71bc5cce96366b5d7a569937c529eeda66c7293784a9402801af31").unwrap().try_into().unwrap(),
+                period: 30,
+                genesis_time: 1595430000,
+                hash: hex_to_vec_u8("8990e7a9aaed2ffed73dbd7092123d6f289930540d7651336225dc172e51b2ce").unwrap().try_into().unwrap(),
+                group_hash: hex_to_vec_u8("176f93498eac9ca337150b46d21dd58673ea4e3581185f869672e59fa4cb390a").unwrap().try_into().unwrap(),
+            }
+    }
 }
 
 impl From<InfoRaw> for Info {
@@ -87,7 +112,9 @@ impl Default for RoundRaw {
 }
 
 /// Round will be used in substrate, as it has the Encode/Decode traits derived.
-#[derive(Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo)]
+#[derive(
+    Encode, Decode, Clone, PartialEq, Eq, RuntimeDebug, scale_info::TypeInfo, MaxEncodedLen,
+)]
 pub struct Round {
     pub round: u64,
     // TODO - use array instead of BoundedVec
