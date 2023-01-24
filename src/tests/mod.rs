@@ -127,6 +127,35 @@ fn get_latest() {
 }
 
 #[test]
+fn get_latest_err() {
+    let (offchain, state) = testing::TestOffchainExt::new();
+    let mut t = TestExternalities::default();
+    t.register_extension(OffchainWorkerExt::new(offchain));
+
+    let filename = "./src/tests/testdata/latest.json";
+    let file = File::open(filename).unwrap();
+    let round: RoundRaw = serde_json::from_reader(BufReader::new(file)).unwrap();
+    let round_string = serde_json::to_string(&round).unwrap();
+    let mut expected_response = round_string.as_bytes().to_vec();
+    // change the response's first byte to make it invalid
+    expected_response[0] += 1;
+
+    t.execute_with(|| {
+        let client = Client::default();
+        state.write().expect_request(testing::PendingRequest {
+            method: "GET".into(),
+            uri: LATEST_URI.into(),
+            headers: vec![],
+            sent: true,
+            response: Some(expected_response),
+            ..Default::default()
+        });
+        let round = client.latest();
+        assert!(round.is_err());
+    })
+}
+
+#[test]
 pub fn verify_randomness() {
     let (offchain, state) = testing::TestOffchainExt::new();
     let mut t = TestExternalities::default();
