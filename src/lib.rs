@@ -13,7 +13,7 @@ use sp_runtime::offchain::{
     Duration,
 };
 
-use drand_verify::g1_from_variable;
+use drand_verify::{G1Pubkey, Pubkey};
 
 use codec::{Decode, Encode};
 use frame_support::{dispatch::MaxEncodedLen, Deserialize, Serialize};
@@ -258,7 +258,7 @@ impl Client {
             signature,
         } = round;
 
-        let pk_point = g1_from_variable(pub_key_vec.as_slice()).map_err(|_| ClientError::Misc)?;
+        let pk_point = G1Pubkey::from_variable(pub_key_vec.as_slice()).map_err(|_| ClientError::Misc)?;
         match drand_verify::verify(&pk_point, *round, previous_signature, signature) {
             Ok(b) => {
                 if !b {

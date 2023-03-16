@@ -22,7 +22,7 @@ codec = { package = "parity-scale-codec", version = "3.0.0", default-features = 
 scale-info = { version = "2.1.1", default-features = false, features = [
     "derive",
 ] }
-drand-verify = "0.3.0"
+drand-verify = {version = "^0.5.0", default-features = false } 
 
 [features]
 default = ["std"]
